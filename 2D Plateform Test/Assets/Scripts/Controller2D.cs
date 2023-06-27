@@ -13,6 +13,18 @@ public class Controller2D : MonoBehaviour
         public Vector2 bottomLeft, bottomRight;
     }
 
+    public  struct CollisionInfo
+    {
+        public bool left, right;
+        public bool blow, up;
+
+        public void Reset()
+        {
+            left = right = false;
+            blow = up = false;
+        }
+    }
+
     
     public LayerMask collisionMask;
     
@@ -25,7 +37,8 @@ public class Controller2D : MonoBehaviour
     public float verticalRaySpace = 0;
     
     private RaycastOrigins raycastOrigins;
-    private BoxCollider2D collider;
+    private new BoxCollider2D collider;
+    public CollisionInfo collision;
     
     
     
@@ -67,56 +80,62 @@ public class Controller2D : MonoBehaviour
     {
     }
 
-    public void Move(Vector3 velocity)
+    public void Move(Vector3 offset)
     {
+        collision.Reset();
         UpdateRaycastOrigins();
-        if (velocity.y != 0)
+        if (offset.y != 0)
         {
-            VerticalCollision(ref velocity);
+            VerticalCollision(ref offset);
         }
 
-        if (velocity.x != 0)
+        if (offset.x != 0)
         {
-            HorizontalCollision(ref velocity);
+            HorizontalCollision(ref offset);
         }
-        transform.Translate(velocity);
+        transform.Translate(offset);
     }
 
     //竖直方向 即上下
-    private void VerticalCollision(ref Vector3 velocity)
+    private void VerticalCollision(ref Vector3 offset)
     {
-        float directionY = Mathf.Sign(velocity.y);
-        float rayLength = Mathf.Abs(velocity.y) + skinWith;
+        float directionY = Mathf.Sign(offset.y);
+        float rayLength = Mathf.Abs(offset.y) + skinWith;
 
         for (int i = 0; i < horizontalRayCount; i++)
         {
             Vector2 rayOrigin = (directionY == -1) ? raycastOrigins.bottomLeft : raycastOrigins.topLeft;
-            rayOrigin += (horizontalRaySpace * i + velocity.x) * Vector2.right;
+            rayOrigin += (horizontalRaySpace * i + offset.x) * Vector2.right;
             RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.up * directionY, rayLength, collisionMask);
             Debug.DrawRay(rayOrigin,(Vector2.up*(rayLength*directionY)),Color.red);
             if (hit)
             {
-                velocity.y = (hit.distance-skinWith)*directionY;
+                offset.y = (hit.distance-skinWith)*directionY;
+                collision.blow = directionY == -1;
+                collision.up = directionY == 1;
                 rayLength = hit.distance;
+                Debug.LogError(collision.blow);
             }
         }
     }
     
     //水平方向碰撞  即左右
-    private void HorizontalCollision(ref Vector3 velocity)
+    private void HorizontalCollision(ref Vector3 offset)
     {
-        float directionX = Mathf.Sign(velocity.x);
-        float rayLength = Mathf.Abs(velocity.x) + skinWith;
+        float directionX = Mathf.Sign(offset.x);
+        float rayLength = Mathf.Abs(offset.x) + skinWith;
 
         for (int i = 0; i < horizontalRayCount; i++)
         {
             Vector2 rayOrigin = (directionX == -1) ? raycastOrigins.bottomLeft : raycastOrigins.bottomRight;
-            rayOrigin += (verticalRaySpace * i + velocity.y) * Vector2.up;
+            rayOrigin += (verticalRaySpace * i + offset.y) * Vector2.up;
             RaycastHit2D hit = Physics2D.Raycast(rayOrigin, Vector2.right * directionX, rayLength, collisionMask);
             if (hit)
             {
-                velocity.x = (hit.distance-skinWith)*directionX;
+                offset.x = (hit.distance-skinWith)*directionX;
                 rayLength = hit.distance;
+                collision.left = directionX == -1;
+                collision.right = directionX == 1;
             }
         }
     }
