@@ -33,19 +33,19 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (controller2D.collision.blow || controller2D.collision.up)
+        if (controller2D.collisions.blow || controller2D.collisions.up)
         {
             velocity.y = 0;
         }
         Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
-        if (Input.GetKeyDown(KeyCode.Space) && controller2D.collision.blow)
+        if (Input.GetKeyDown(KeyCode.Space) && controller2D.collisions.blow)
         {
             velocity.y = jumpVelocity;
         }
 
         float targetVelocityX = input.x * moveSpeed;
-        velocity.x = Mathf.SmoothDamp (velocity.x, targetVelocityX, ref velocityXSmoothing, (controller2D.collision.blow)?acclerationTimeGrounded:acclerationTimeAirborn);
+        velocity.x = Mathf.SmoothDamp (velocity.x, targetVelocityX, ref velocityXSmoothing, (controller2D.collisions.blow)?acclerationTimeGrounded:acclerationTimeAirborn);
 
         velocity.y += gravity * Time.deltaTime;
         controller2D.Move(velocity*Time.deltaTime);
