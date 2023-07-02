@@ -19,7 +19,6 @@ public class Player : MonoBehaviour
     public Vector3 velocity = Vector3.zero;
 
     private float velocityXSmoothing;
-    private float test;
     
     // Start is called before the first frame update
     void Start()
@@ -38,7 +37,7 @@ public class Player : MonoBehaviour
         {
             velocity.y = 0;
         }
-        Vector3 input = new Vector3(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"),0);
+        Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
         if (Input.GetKeyDown(KeyCode.Space) && controller2D.collision.blow)
         {
@@ -46,9 +45,8 @@ public class Player : MonoBehaviour
         }
 
         float targetVelocityX = input.x * moveSpeed;
-        //velocity.x = input.x * (Time.deltaTime * moveSpeed);
-        velocity.x = Mathf.SmoothDamp(velocity.x, targetVelocityX, ref velocityXSmoothing,
-            controller2D.collision.blow ? acclerationTimeGrounded : acclerationTimeAirborn);
+        velocity.x = Mathf.SmoothDamp (velocity.x, targetVelocityX, ref velocityXSmoothing, (controller2D.collision.blow)?acclerationTimeGrounded:acclerationTimeAirborn);
+
         velocity.y += gravity * Time.deltaTime;
         controller2D.Move(velocity*Time.deltaTime);
     }
