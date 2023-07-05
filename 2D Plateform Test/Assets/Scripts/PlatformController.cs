@@ -4,12 +4,33 @@ using UnityEngine;
 
 public class PlatformController : RaycastController
 {
+    struct PassengerMovement
+    {
+        public Transform transform;
+        public Vector3 offset;
+        //是否正在平台上
+        public bool isStandingOnPlatform;
+        //是否在平台前移动
+        public bool moveBeforePlatform;
+
+        public PassengerMovement(Transform passenger, Vector3 offset, bool isStandingOnPlatform,
+            bool moveBeforePlatform)
+        {
+            this.transform = passenger;
+            this.offset = offset;
+            this.isStandingOnPlatform = isStandingOnPlatform;
+            this.moveBeforePlatform = moveBeforePlatform;
+        }
+    }
+    
     public LayerMask passengerMask;
 
     public Vector3 moveSpeed;
-    HashSet<Transform> passengers = new HashSet<Transform>();
-
     
+    private HashSet<Transform> passengers = new HashSet<Transform>();
+    List<PassengerMovement> passengerMovements = new List<PassengerMovement>();
+    private Dictionary<Transform, Controller2D> controllerDictionary = new Dictionary<Transform, Controller2D>();
+
     // Start is called before the first frame update
     public override void Start()
     {
@@ -21,15 +42,35 @@ public class PlatformController : RaycastController
     {
         UpdateRaycastOrigins();
         Vector3 offset = Time.deltaTime * moveSpeed;
-        MovePassenger(offset);
+        CalculateMovePassenger(offset);
+        MovePassenger(false);
         transform.Translate(offset);
+        MovePassenger(true);
     }
 
+    private void MovePassenger(bool beforePlatform)
+    {
+        foreach (var passenger in passengerMovements)
+        {
+            Transform trans = passenger.transform;
+            if (!controllerDictionary.ContainsKey(trans))
+            {
+                controllerDictionary.Add(trans,trans.GetComponent<Controller2D>());
+            }
+
+            if (passenger.moveBeforePlatform == beforePlatform)
+            {
+                controllerDictionary[trans].Move(passenger.offset);
+            }
+        }
+    }
+    
     //移动乘客
-    private void MovePassenger(Vector3 offset)
+    private void CalculateMovePassenger(Vector3 offset)
     {
         //防止多次对乘客进行操作
         passengers.Clear();
+        passengerMovements.Clear();
         float directionX = Mathf.Sign(offset.x);
         float directionY = Mathf.Sign(offset.y);
         
@@ -55,7 +96,7 @@ public class PlatformController : RaycastController
                         passengers.Add(hit.transform);
                         float pushY = offset.y - (hit.distance - skinWidth)*directionY;
                         float pushX = (directionY == 1) ? offset.x : 0;
-                        hit.transform.Translate(new Vector3(pushX,pushY,0));
+                        passengerMovements.Add(new PassengerMovement(hit.transform,new Vector3(pushX,pushY,0),directionY == 1,directionY == 1));
                     }
                 }
             }
@@ -82,7 +123,7 @@ public class PlatformController : RaycastController
                         passengers.Add(hit.transform);
                         float pushX = offset.x - (hit.distance - skinWidth)*directionX;
                         float pushY = 0;
-                        hit.transform.Translate(new Vector3(pushX,pushY,0));
+                        passengerMovements.Add(new PassengerMovement(hit.transform,new Vector3(pushX,pushY,0),false,true));
                     }
                 }
             }
@@ -108,7 +149,8 @@ public class PlatformController : RaycastController
                         passengers.Add(hit.transform);
                         float pushY = offset.y;
                         float pushX = offset.x;
-                        hit.transform.Translate(new Vector3(pushX,pushY,0));
+                        passengerMovements.Add(new PassengerMovement(hit.transform,new Vector3(pushX,pushY,0),true,true));
+
                     }
                 }
             }
