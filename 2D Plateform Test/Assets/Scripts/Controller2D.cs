@@ -6,92 +6,21 @@ using UnityEngine.Serialization;
 
 
 [RequireComponent(typeof(BoxCollider2D))]
-public class Controller2D : MonoBehaviour
+public class Controller2D : RaycastController
 {
-    struct RaycastOrigins
-    {
-        public Vector2 topLeft, topRight;
-        public Vector2 bottomLeft, bottomRight;
-    }
-
-    public  struct CollisionInfo
-    {
-        public bool left, right;
-        public bool blow, up;
-        //斜坡相关数据
-        public bool isClambing;
-        public float slopeAngle, oldSlampeAngle;
-
-        //是否在下坡
-        public bool isDecenting;
-        public Vector3 startOffset;
-        
-        public void Reset()
-        {
-            left = right = false;
-            blow = up = false;
-            isClambing = false;
-            oldSlampeAngle = slopeAngle;
-            slopeAngle = 0;
-        }
-    }
-
-    
-    public LayerMask collisionMask;
-    
-    private const float skinWidth = .015f;
-    
-    public int horizontalRayCount = 4;
-    public int verticalRayCount = 4;
-
-    float horizontalRaySpace = 0; 
-    float verticalRaySpace = 0;
 
     //斜坡最大可攀爬角度
     public float maxClambAngle = 80;
     //最大下滑高度
     public float maxDescendAngle = 60;
     
-    private RaycastOrigins raycastOrigins;
-    private new BoxCollider2D collider;
-    public CollisionInfo collisions;
-    
-    
-    
     // Start is called before the first frame update
-    void Start()
+    public override void  Start()
     {
-        collider = GetComponent<BoxCollider2D>();
-        CalculateRaySpacing();
+        base.Start();
     }
     
-    
-    //更新顶点
-    void UpdateRaycastOrigins()
-    {
-        Bounds bounds = collider.bounds;
-        bounds.Expand(skinWidth*-2);
-        
-        raycastOrigins.bottomLeft = bounds.min;
-        raycastOrigins.bottomRight = new Vector2(bounds.max.x, bounds.min.y);
-        raycastOrigins.topLeft = new Vector2(bounds.min.x, bounds.max.y);
-        raycastOrigins.topRight = bounds.max;
-    }
-
-    //计算间隔
-    void CalculateRaySpacing()
-    {
-        Bounds bounds = collider.bounds;
-        bounds.Expand(skinWidth*-2);
-        
-        horizontalRayCount = Mathf.Clamp(horizontalRayCount, 2, Int32.MaxValue);
-        verticalRayCount = Mathf.Clamp(verticalRayCount, 2, Int32.MaxValue);
-
-        horizontalRaySpace = bounds.size.x / (horizontalRayCount - 1);
-        verticalRaySpace = bounds.size.y / (verticalRayCount - 1);
-    }
-    
-
+   
     public void Move(Vector3 offset)
     {
         UpdateRaycastOrigins();
@@ -100,6 +29,7 @@ public class Controller2D : MonoBehaviour
         if (offset.y < 0)
         {
             DescendSlope(ref offset);
+
         }
         if (offset.x != 0)
         {
@@ -112,11 +42,7 @@ public class Controller2D : MonoBehaviour
         }
         transform.Translate(offset);
     }
-
-    public void MyPrint(int k,Vector2 offset)
-    {
-        Debug.LogError(k+" x:" + offset.x +" y:" + offset.y);
-    }
+    
     
     //下坡
     private void DescendSlope(ref Vector3 offset)
@@ -188,7 +114,7 @@ public class Controller2D : MonoBehaviour
                     }
 
                     offset.x -= distanceX;
-                    ClambSlope(ref offset, angle);
+                    ClimbSlope(ref offset, angle);
                     offset.x += distanceX;
 
                 }
@@ -212,14 +138,14 @@ public class Controller2D : MonoBehaviour
         }
     }
 
-    private void ClambSlope(ref Vector3 offset, float angle)
+    private void ClimbSlope(ref Vector3 offset, float angle)
     {
         float distance = Mathf.Abs( offset.x);
-        float clambOffsetY = distance * Mathf.Sin(angle * Mathf.Deg2Rad);
+        float climbOffsetY = distance * Mathf.Sin(angle * Mathf.Deg2Rad);
         //判断是否在空中
-        if (clambOffsetY >= offset.y)
+        if (climbOffsetY >= offset.y)
         {
-            offset.y = clambOffsetY;
+            offset.y = climbOffsetY;
             offset.x = distance*Mathf.Cos(angle * Mathf.Deg2Rad)*Mathf.Sign(offset.x);
             collisions.isClambing = true;
             collisions.slopeAngle = angle;
