@@ -1,30 +1,89 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
 public class PlatformController : RaycastController {
 
 	public LayerMask passengerMask;
-	public Vector3 move;
-
+	
+	//移动目标  相对位置
+	public Vector3[] moveTarget;
+	public float moveSpeed = 1;
+	//判断是为循环
+	public bool isCycle = false;
+	//平滑系数 越大抖动越快
+	[Range(0,2)]
+	public float easeAmount = 0;
+	//暂停时间
+	public float pauseTime = 0;
+	
+	//绝对位置
+	private Vector3[] globalTarget;
+	private float moveProgress = 0;
+	private int curIndex = 0;
+	private float moveTime = 0;
+	
 	List<PassengerMovement> passengerMovement;
 	Dictionary<Transform,Controller2D> passengerDictionary = new Dictionary<Transform, Controller2D>();
 	
 	public override void Start () {
 		base.Start ();
+		globalTarget = new Vector3[moveTarget.Length];
+		for (int i = 0; i < globalTarget.Length; i++)
+		{
+			globalTarget[i] = transform.position + moveTarget[i];
+		}
 	}
 
 	void Update () {
 
 		UpdateRaycastOrigins ();
 
-		Vector3 velocity = move * Time.deltaTime;
+		Vector3 velocity = CalculateMove();
 
 		CalculatePassengerMovement(velocity);
 
 		MovePassengers (true);
 		transform.Translate (velocity);
 		MovePassengers (false);
+	}
+
+	private Vector3 CalculateMove()
+	{
+		if (moveTime >Time.time)
+		{
+			return Vector3.zero;
+		}
+		
+		int nextIndex = (curIndex + 1) % globalTarget.Length;
+		moveProgress += (Time.deltaTime * moveSpeed) /
+		                (Vector3.Distance(globalTarget[curIndex], globalTarget[nextIndex]));
+		float easeProgress = Ease(moveProgress);
+		Vector3 moveOff = Vector3.Lerp(globalTarget[curIndex], globalTarget[nextIndex], easeProgress) -
+		                     transform.position;
+		
+		if (moveProgress >= 1)
+		{
+			curIndex = (curIndex+1)%globalTarget.Length;
+			//非循环的且到最后一个翻转数组
+			if (!isCycle && curIndex == globalTarget.Length-1)
+			{
+				curIndex = 0;
+				Array.Reverse(globalTarget);
+			}
+			moveProgress = 0;
+			moveTime = Time.time + pauseTime;
+		}
+		return moveOff;
+	}
+
+	//平滑  从慢到快再到慢  (x^a) / ((x^a)+(1-x)^a)
+	private float Ease(float progress)
+	{
+		progress = Mathf.Clamp01(progress);
+		float a = 1 + easeAmount;
+		return Mathf.Pow(progress, a) /( Mathf.Pow(progress, a) + Mathf.Pow((1 - progress), a));
 	}
 
 	void MovePassengers(bool beforeMovePlatform) {
@@ -108,6 +167,19 @@ public class PlatformController : RaycastController {
 			}
 		}
 	}
+
+	public void OnDrawGizmos()
+	{
+		if (moveTarget != null)
+		{
+			Gizmos.color = Color.red;
+			for (int i = 0; i < moveTarget.Length; i++)
+			{
+				Vector3 globalPos = Application.isPlaying ? globalTarget[i] : (moveTarget[i] + transform.position);
+				Gizmos.DrawCube(globalPos,Vector3.one/5);
+			}
+		}
+	}	
 
 	struct PassengerMovement {
 		public Transform transform;
