@@ -8,10 +8,9 @@ public class Controller2D : RaycastController {
 	
 	public CollisionInfo collisions;
 
-
 	public override void Start() {
 		base.Start ();
-
+		collisions.faceDir = 1;
 	}
 
 	public void Move(Vector3 velocity, bool standingOnPlatform = false)
@@ -24,13 +23,16 @@ public class Controller2D : RaycastController {
 		collisions.Reset ();
 		collisions.playerInput = input;
 		collisions.velocityOld = velocity;
-
+		if (velocity.x != 0)
+		{
+			collisions.faceDir = (int)Mathf.Sign(velocity.x);
+		}
+		
 		if (velocity.y < 0) {
 			DescendSlope(ref velocity);
 		}
-		if (velocity.x != 0) {
-			HorizontalCollisions (ref velocity);
-		}
+		HorizontalCollisions (ref velocity);
+		
 		if (velocity.y != 0) {
 			VerticalCollisions (ref velocity);
 		}
@@ -43,8 +45,12 @@ public class Controller2D : RaycastController {
 	}
 
 	void HorizontalCollisions(ref Vector3 velocity) {
-		float directionX = Mathf.Sign (velocity.x);
+		float directionX = collisions.faceDir;
 		float rayLength = Mathf.Abs (velocity.x) + skinWidth;
+		if (Mathf.Abs(velocity.x) < skinWidth)
+		{
+			rayLength = 2 * skinWidth;
+		}
 		
 		for (int i = 0; i < horizontalRayCount; i ++) {
 			Vector2 rayOrigin = (directionX == -1)?raycastOrigins.bottomLeft:raycastOrigins.bottomRight;
@@ -190,6 +196,8 @@ public class Controller2D : RaycastController {
 		public float slopeAngle, slopeAngleOld;
 		public Vector3 velocityOld;
 		public Vector2 playerInput;
+		//玩家面向
+		public int faceDir;
 
 		public void Reset() {
 			above = below = false;
