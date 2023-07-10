@@ -14,9 +14,15 @@ public class Controller2D : RaycastController {
 
 	}
 
-	public void Move(Vector3 velocity, bool standingOnPlatform = false) {
+	public void Move(Vector3 velocity, bool standingOnPlatform = false)
+	{
+		Move(velocity,Vector2.zero,standingOnPlatform);
+	}
+	
+	public void Move(Vector3 velocity,Vector2 input, bool standingOnPlatform = false) {
 		UpdateRaycastOrigins ();
 		collisions.Reset ();
+		collisions.playerInput = input;
 		collisions.velocityOld = velocity;
 
 		if (velocity.y < 0) {
@@ -96,8 +102,18 @@ public class Controller2D : RaycastController {
 
 			Debug.DrawRay(rayOrigin, Vector2.up * directionY * rayLength,Color.red);
 
-			if (hit) {
-			 
+			if (hit && hit.distance != 0) {
+				if ( hit.collider.CompareTag("Through"))
+				{
+					if (directionY == 1)
+					{
+						continue;
+					}
+					if (collisions.playerInput.y == -1)
+					{
+						continue;
+					}
+				}
 				velocity.y = (hit.distance - skinWidth) * directionY;
 				rayLength = hit.distance;
 
@@ -116,7 +132,7 @@ public class Controller2D : RaycastController {
 			Vector2 rayOrigin = ((directionX == -1)?raycastOrigins.bottomLeft:raycastOrigins.bottomRight) + Vector2.up * velocity.y;
 			RaycastHit2D hit = Physics2D.Raycast(rayOrigin,Vector2.right * directionX,rayLength,collisionMask);
 
-			if (hit) {
+			if (hit&& hit.distance!=0) {
 				float slopeAngle = Vector2.Angle(hit.normal,Vector2.up);
 				if (slopeAngle != collisions.slopeAngle) {
 					velocity.x = (hit.distance - skinWidth) * directionX;
@@ -144,7 +160,7 @@ public class Controller2D : RaycastController {
 		Vector2 rayOrigin = (directionX == -1) ? raycastOrigins.bottomRight : raycastOrigins.bottomLeft;
 		RaycastHit2D hit = Physics2D.Raycast (rayOrigin, -Vector2.up, Mathf.Infinity, collisionMask);
 
-		if (hit) {
+		if (hit&& hit.distance!=0) {
 			float slopeAngle = Vector2.Angle(hit.normal, Vector2.up);
 			if (slopeAngle != 0 && slopeAngle <= maxDescendAngle) {
 				if (Mathf.Sign(hit.normal.x) == directionX) {
@@ -173,6 +189,7 @@ public class Controller2D : RaycastController {
 		public bool descendingSlope;
 		public float slopeAngle, slopeAngleOld;
 		public Vector3 velocityOld;
+		public Vector2 playerInput;
 
 		public void Reset() {
 			above = below = false;
@@ -182,6 +199,7 @@ public class Controller2D : RaycastController {
 
 			slopeAngleOld = slopeAngle;
 			slopeAngle = 0;
+			playerInput = Vector2.zero;
 		}
 	}
 
